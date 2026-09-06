@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/"],
       },
     ],
-    sitemap: "https://webmirror.vercel.app/sitemap.xml",
+    sitemap: "https://siteclonepro.vercel.app/sitemap.xml",
   };
 }

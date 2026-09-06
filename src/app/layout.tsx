@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://webmirror.vercel.app"),
+  metadataBase: new URL("https://siteclonepro.vercel.app"),
   title: {
     default: "SiteClonePro — AI-Powered Universal Website Archiver & Offline Mirror",
     template: "%s | SiteClonePro",
@@ -64,12 +64,12 @@ export const metadata: Metadata = {
     telephone: false,
   },
   alternates: {
-    canonical: "https://webmirror.vercel.app",
+    canonical: "https://siteclonepro.vercel.app",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://webmirror.vercel.app",
+    url: "https://siteclonepro.vercel.app",
     siteName: "SiteClonePro",
     title: "SiteClonePro — AI-Powered Universal Website Archiver & Offline Mirror",
     description:
@@ -159,7 +159,7 @@ export default function RootLayout({
       {
         "@type": "WebSite",
         name: "SiteClonePro",
-        url: "https://webmirror.vercel.app",
+        url: "https://siteclonepro.vercel.app",
         author: {
           "@type": "Person",
           name: "Lob Das",
