@@ -130,7 +130,7 @@ function defaultExt(type: string): string {
     case "audio":
       return "mp3";
     default:
-      return "dat";
+      return "";
   }
 }
 
@@ -180,8 +180,10 @@ function assetLocalPath(url: URL, siteOriginOrHost: string, fallbackType: string
     let filename = segments[segments.length - 1];
     if (!filename.includes(".")) {
       const ext = defaultExt(fallbackType);
-      filename = `${filename}.${ext}`;
-      segments[segments.length - 1] = filename;
+      if (ext) {
+        filename = `${filename}.${ext}`;
+        segments[segments.length - 1] = filename;
+      }
     }
     return segments.join("/");
   } else {
@@ -194,8 +196,10 @@ function assetLocalPath(url: URL, siteOriginOrHost: string, fallbackType: string
     let filename = segments[segments.length - 1];
     if (!filename.includes(".")) {
       const ext = defaultExt(fallbackType);
-      filename = `${filename}.${ext}`;
-      segments[segments.length - 1] = filename;
+      if (ext) {
+        filename = `${filename}.${ext}`;
+        segments[segments.length - 1] = filename;
+      }
     }
     return `external/${host}/${segments.join("/")}`;
   }
@@ -1327,7 +1331,99 @@ export async function POST(request: NextRequest) {
       ].join("\n")
     );
 
-    // 1-Click Local Server Script for Windows (Bypasses browser file:// CORS restrictions for WebGL & 3D models)
+    // Zero-dependency Local Server for WebGL 3D & WASM (Bypasses browser file:// CORS restrictions)
+    zip.file(
+      "server.js",
+      `const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
+
+const PORT = 8080;
+const ROOT = __dirname;
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf+json',
+  '.bin': 'application/octet-stream',
+  '.splinecode': 'application/octet-stream',
+  '.wasm': 'application/wasm',
+  '.hdr': 'image/vnd.radiance',
+  '.exr': 'image/x-exr',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mp3': 'audio/mpeg'
+};
+
+const server = http.createServer((req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    return res.end();
+  }
+
+  let reqUrl = req.url || '/';
+  let reqPath = decodeURIComponent(reqUrl.split('?')[0].split('#')[0]);
+  if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
+
+  let filePath = path.join(ROOT, reqPath);
+
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+    filePath = path.join(filePath, 'index.html');
+  }
+
+  if (!fs.existsSync(filePath)) {
+    for (const ext of ['.html', '.glb', '.gltf', '.json', '.js', '.bin', '.splinecode']) {
+      if (fs.existsSync(filePath + ext)) {
+        filePath = filePath + ext;
+        break;
+      }
+    }
+  }
+
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('404 Not Found: ' + reqPath);
+  }
+
+  const ext = path.extname(filePath).toLowerCase();
+  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+  res.writeHead(200, { 'Content-Type': contentType });
+  fs.createReadStream(filePath).pipe(res);
+});
+
+server.listen(PORT, () => {
+  console.log('========================================================');
+  console.log('  SiteClonePro Local Web Server Running!');
+  console.log('  URL: http://localhost:' + PORT);
+  console.log('  CORS unlocked for WebGL 3D, WASM, and Three.js assets.');
+  console.log('========================================================');
+  const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  exec(startCmd + ' http://localhost:' + PORT, () => {});
+});
+`
+    );
+
+    // 1-Click Local Server Script for Windows
     zip.file(
       "start-server.bat",
       `@echo off
@@ -1336,14 +1432,17 @@ echo ================================================================
 echo           SiteClonePro Offline Local Server Launcher
 echo ================================================================
 echo.
-echo Notice: Modern 3D/WebGL websites (Three.js, GLTF, Spline) require
-echo an HTTP server because browsers block 3D models on file:// protocol.
-echo.
+where node >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    echo [OK] Node.js found. Starting optimized 3D server...
+    node server.js
+    exit /b
+)
 where npx >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
-    echo [OK] Node.js detected. Starting server on http://localhost:8080 ...
+    echo [OK] Using npx serve...
     start http://localhost:8080
-    npx -y serve -s . -l 8080
+    npx -y serve . -l 8080
     exit /b
 )
 where python >nul 2>nul
@@ -1353,7 +1452,7 @@ if %ERRORLEVEL% EQU 0 (
     python -m http.server 8080
     exit /b
 )
-echo [Warning] Neither Node.js (npx) nor Python was found on your system.
+echo [Warning] Neither Node.js nor Python was found on your system.
 echo To run 3D WebGL scenes without CORS errors:
 echo 1. Install Node.js (https://nodejs.org) OR Python (https://python.org)
 echo 2. Or open this folder in VS Code and click "Go Live" (Live Server extension).
@@ -1366,23 +1465,16 @@ pause
     zip.file(
       "start-server.sh",
       `#!/bin/bash
-echo "================================================================"
-echo "          SiteClonePro Offline Local Server Launcher"
-echo "================================================================"
-echo ""
-echo "Notice: WebGL 3D scenes require an HTTP server to bypass file:// CORS."
-echo ""
-if command -v npx >/dev/null 2>&1; then
-    echo "Starting local server with npx serve on http://localhost:8080 ..."
-    npx -y serve -s . -l 8080
+if command -v node >/dev/null 2>&1; then
+    node server.js
+elif command -v npx >/dev/null 2>&1; then
+    npx -y serve . -l 8080
 elif command -v python3 >/dev/null 2>&1; then
-    echo "Starting local server with python3 on http://localhost:8080 ..."
     python3 -m http.server 8080
 elif command -v python >/dev/null 2>&1; then
-    echo "Starting local server with python on http://localhost:8080 ..."
     python -m http.server 8080
 else
-    echo "Please install Node.js or Python to view 3D assets locally."
+    echo "Please install Node.js (https://nodejs.org) to view 3D assets locally."
 fi
 `
     );
