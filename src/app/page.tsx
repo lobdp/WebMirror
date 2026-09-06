@@ -598,6 +598,44 @@ export default function Home() {
             </div>
           </section>
         )}
+
+        {/* SEO & Knowledge Showcase Section */}
+        <section className="seo-showcase-section" aria-label="WebMirror Archiving Architecture">
+          <div className="seo-header">
+            <span className="seo-tag">AI-Optimized Offline Mirroring</span>
+            <h2 className="seo-headline">Engineered for Flawless Local Browsing</h2>
+            <p className="seo-sub">
+              Unlike ordinary browser &ldquo;Save Page As&rdquo; commands that break deep CSS paths and fonts, 
+              WebMirror mathematically mirrors server directory trees with zero broken assets.
+            </p>
+          </div>
+
+          <div className="seo-grid">
+            <article className="seo-card">
+              <span className="seo-step">01</span>
+              <h3>Recursive Graph Crawling</h3>
+              <p>
+                Scans internal domain links, discovering subpages, media, scripts, and embedded stylesheets without leaking into external third-party domains.
+              </p>
+            </article>
+
+            <article className="seo-card">
+              <span className="seo-step">02</span>
+              <h3>Deep CSS &amp; Font Extraction</h3>
+              <p>
+                Recursively resolves <code>@import</code> rules, <code>@font-face</code> sources, and <code>url(...)</code> declarations so your typography and vector icons render offline identically.
+              </p>
+            </article>
+
+            <article className="seo-card">
+              <span className="seo-step">03</span>
+              <h3>Mathematical Relative Rewriting</h3>
+              <p>
+                Translates absolute URLs into clean relative paths (e.g. <code>../../assets/css/style.css</code>) tailored to each page&apos;s directory depth for standalone <code>file:///</code> compatibility.
+              </p>
+            </article>
+          </div>
+        </section>
       </main>
 
       {/* Premium Footer with Creator Link */}

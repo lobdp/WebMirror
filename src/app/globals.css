@@ -912,6 +912,110 @@ button, input, select {
   color: #34d399;
 }
 
+/* SEO Showcase Section */
+.seo-showcase-section {
+  margin-top: 56px;
+  padding-top: 48px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.seo-header {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto 36px;
+}
+
+.seo-tag {
+  font-size: 11px;
+  font-family: var(--font-mono), monospace;
+  text-transform: uppercase;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 4px 12px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 12px;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.seo-headline {
+  font-size: clamp(24px, 3.5vw, 36px);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+}
+
+.seo-sub {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.seo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.seo-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+  transition: all 0.25s ease;
+}
+
+.seo-card:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+}
+
+.seo-step {
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 14px;
+}
+
+.seo-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 10px;
+}
+
+.seo-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.seo-card code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #38bdf8;
+}
+
+@media (max-width: 900px) {
+  .seo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Premium Footer */
 .footer {
   position: relative;
