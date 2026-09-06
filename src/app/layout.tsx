@@ -27,13 +27,15 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://webmirror.vercel.app"),
   title: {
-    default: "WebMirror — AI-Powered Universal Website Archiver & Offline Mirror",
-    template: "%s | WebMirror",
+    default: "SiteClonePro — AI-Powered Universal Website Archiver & Offline Mirror",
+    template: "%s | SiteClonePro",
   },
   description:
     "Universal AI-assisted website archiver and offline mirroring engine. Mirror and download complete websites with 100% authentic folder structures, offline relative path rewriting, CSS & web font extraction, and zero broken assets. Created by Lob Das.",
-  applicationName: "WebMirror",
+  applicationName: "SiteClonePro",
   keywords: [
+    "siteclonepro",
+    "site clone pro",
     "website archiver",
     "offline website downloader",
     "mirror website offline",
@@ -68,8 +70,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://webmirror.vercel.app",
-    siteName: "WebMirror",
-    title: "WebMirror — AI-Powered Universal Website Archiver & Offline Mirror",
+    siteName: "SiteClonePro",
+    title: "SiteClonePro — AI-Powered Universal Website Archiver & Offline Mirror",
     description:
       "Archive and download complete websites offline with exact folder hierarchy, relative links rewriting, and full CSS/fonts extraction. Created by Lob Das.",
     images: [
@@ -77,14 +79,14 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "WebMirror - Universal Website Archiver created by Lob Das",
+        alt: "SiteClonePro - Universal Website Archiver created by Lob Das",
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "WebMirror — AI-Powered Universal Website Archiver",
+    title: "SiteClonePro — AI-Powered Universal Website Archiver",
     description:
       "Download complete websites offline with 100% authentic folder structures and offline relative paths. Created by Lob Das.",
     creator: "@lobdas",
@@ -125,7 +127,7 @@ export default function RootLayout({
     "@graph": [
       {
         "@type": "SoftwareApplication",
-        name: "WebMirror",
+        name: "SiteClonePro",
         operatingSystem: "All (Windows, macOS, Linux, iOS, Android)",
         applicationCategory: "DeveloperApplication",
         offers: {
@@ -156,7 +158,7 @@ export default function RootLayout({
       },
       {
         "@type": "WebSite",
-        name: "WebMirror",
+        name: "SiteClonePro",
         url: "https://webmirror.vercel.app",
         author: {
           "@type": "Person",

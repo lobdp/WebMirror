@@ -189,7 +189,7 @@ export default function Home() {
               <span className="brand-arrow">↘</span>
             </div>
             <div className="brand-text">
-              <span className="brand-title">WebMirror</span>
+              <span className="brand-title">SiteClonePro</span>
               <span className="brand-tag">v2.2 Pro</span>
             </div>
           </div>
@@ -600,13 +600,13 @@ export default function Home() {
         )}
 
         {/* SEO & Knowledge Showcase Section */}
-        <section className="seo-showcase-section" aria-label="WebMirror Archiving Architecture">
+        <section className="seo-showcase-section" aria-label="SiteClonePro Archiving Architecture">
           <div className="seo-header">
             <span className="seo-tag">AI-Optimized Offline Mirroring</span>
             <h2 className="seo-headline">Engineered for Flawless Local Browsing</h2>
             <p className="seo-sub">
               Unlike ordinary browser &ldquo;Save Page As&rdquo; commands that break deep CSS paths and fonts, 
-              WebMirror mathematically mirrors server directory trees with zero broken assets.
+              SiteClonePro mathematically mirrors server directory trees with zero broken assets.
             </p>
           </div>
 
@@ -644,7 +644,7 @@ export default function Home() {
           <div className="footer-left">
             <div className="footer-brand">
               <span className="footer-mark">↘</span>
-              <strong>WebMirror</strong>
+              <strong>SiteClonePro</strong>
             </div>
             <p className="footer-desc">
               Universal website archiver and offline asset mirror. Preserves authentic folder

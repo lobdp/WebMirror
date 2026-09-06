@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌐 WebMirror
+# 🌐 SiteClonePro
 
 ### The Ultimate Website Mirroring & Offline Asset Archiver
 
@@ -19,7 +19,7 @@
 ---
 
 [Key Features](#-key-features) •
-[Why WebMirror?](#-why-webmirror-vs-others) •
+[Why SiteClonePro?](#-why-siteclonepro-vs-others) •
 [How It Works](#-how-it-works) •
 [Quick Start](#-quick-start) •
 [Crawl Depth Controls](#-crawl-depth-controls) •
@@ -31,11 +31,11 @@
 
 ---
 
-## 💡 Why WebMirror vs. Others?
+## 💡 Why SiteClonePro vs. Others?
 
-Most website copiers (like legacy `wget`, `HTTrack`, or basic scraper scripts) produce broken offline copies because modern web apps use dynamic CSS `url()` fonts, CDNs, `srcset`, lazy-loaded images, and JavaScript loaders that freeze offline. **WebMirror was built from the ground up to solve all of these problems.**
+Most website copiers (like legacy `wget`, `HTTrack`, or basic scraper scripts) produce broken offline copies because modern web apps use dynamic CSS `url()` fonts, CDNs, `srcset`, lazy-loaded images, and JavaScript loaders that freeze offline. **SiteClonePro was built from the ground up to solve all of these problems.**
 
-| Feature | Legacy Copiers (`wget`, `HTTrack`) | Basic Browser Extensions | ⚡ WebMirror |
+| Feature | Legacy Copiers (`wget`, `HTTrack`) | Basic Browser Extensions | ⚡ SiteClonePro |
 | :--- | :---: | :---: | :---: |
 | **Directory Preservation** | Cluttered / Mangled | Flat / Single folder | **Exact Mirror of Original Paths** |
 | **Recursive CSS & Font Scraping** | Often misses `@font-face` / `@import` | Misses fonts & SVGs | **Recursive Deep Extraction** |
@@ -51,7 +51,7 @@ Most website copiers (like legacy `wget`, `HTTrack`, or basic scraper scripts) p
 ## ✨ Key Features
 
 ### 🗂️ 1. True Hierarchy & Directory Preservation
-WebMirror analyzes the original server's URL pathnames and mirrors them directly on your disk:
+SiteClonePro analyzes the original server's URL pathnames and mirrors them directly on your disk:
 - `https://example.com/assets/css/main.css` ➔ `assets/css/main.css`
 - `https://example.com/assets/img/logo/brand.png` ➔ `assets/img/logo/brand.png`
 - `https://example.com/assets/fonts/font.woff2` ➔ `assets/fonts/font.woff2`
@@ -70,8 +70,8 @@ Every single reference in every HTML and CSS file is converted to point to its c
 - **Lazy Load Attributes**: Automatically discovers `data-src`, `data-lazy-src`, `data-original`, `data-bg`, and `data-srcset`.
 
 ### 🛡️ 4. Offline Resilience & Self-Healing
-- **Broken Image Protection**: If a remote server returns `404 Not Found` for an asset, WebMirror provides a transparent placeholder buffer so your offline pages never show broken image icons.
-- **Offline Preloader Bypass**: Modern sites often freeze on loading spinners offline because analytics or tracking scripts are blocked. WebMirror injects a micro-script that auto-dismisses preloaders once the DOM is ready.
+- **Broken Image Protection**: If a remote server returns `404 Not Found` for an asset, SiteClonePro provides a transparent placeholder buffer so your offline pages never show broken image icons.
+- **Offline Preloader Bypass**: Modern sites often freeze on loading spinners offline because analytics or tracking scripts are blocked. SiteClonePro injects a micro-script that auto-dismisses preloaders once the DOM is ready.
 
 ### 🌐 5. Full Site Deep Crawling & Sitemap Integration
 - Automatically checks `/sitemap.xml` and `/sitemap_index.xml` to discover all pages immediately.

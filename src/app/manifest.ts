@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "WebMirror — Universal Website Archiver & Offline Mirror",
-    short_name: "WebMirror",
+    name: "SiteClonePro — Universal Website Archiver & Offline Mirror",
+    short_name: "SiteClonePro",
     description:
       "Archive and download complete websites offline with exact folder structures, AI-powered relative path rewriting, and zero broken assets.",
     start_url: "/",
