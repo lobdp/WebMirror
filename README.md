@@ -220,5 +220,5 @@ Feel free to check the [issues page](https://github.com/lobdp/WebMirror/issues).
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 <div align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/lobdp">lobdp</a>. Star ⭐ this repository if you found it useful!</sub>
+  <sub>Built with ❤️ by <a href="https://www.linkedin.com/in/lobdas/" target="_blank">lobdp</a>. Star ⭐ this repository if you found it useful!</sub>
 </div>
