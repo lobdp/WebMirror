@@ -444,9 +444,48 @@ function rewriteHtml(
   return finalHtml;
 }
 
+export type ScanEvent =
+  | {
+      type: "page";
+      item: { url: string; name: string; localPath: string; title?: string };
+      stats: {
+        pages: number;
+        assets: number;
+        styles: number;
+        scripts: number;
+        images: number;
+        fonts: number;
+      };
+    }
+  | {
+      type: "asset";
+      item: { url: string; type: string; name: string; localPath: string };
+      stats: {
+        pages: number;
+        assets: number;
+        styles: number;
+        scripts: number;
+        images: number;
+        fonts: number;
+      };
+    }
+  | {
+      type: "status";
+      message: string;
+      stats?: {
+        pages: number;
+        assets: number;
+        styles: number;
+        scripts: number;
+        images: number;
+        fonts: number;
+      };
+    };
+
 async function collectWebsite(
   rootUrl: URL,
-  maxPages = 0
+  maxPages = 0,
+  onEvent?: (event: ScanEvent) => void
 ): Promise<{
   title: string;
   host: string;
@@ -459,6 +498,11 @@ async function collectWebsite(
   let siteOrigin = rootUrl.origin;
   let host = rootUrl.hostname;
   const baseDomain = rootUrl.hostname.replace(/^www\./i, "").toLowerCase();
+
+  let stylesCount = 0;
+  let scriptsCount = 0;
+  let imagesCount = 0;
+  let fontsCount = 0;
 
   const isSameSite = (testUrl: URL): boolean => {
     if (!["http:", "https:"].includes(testUrl.protocol)) return false;
@@ -474,6 +518,15 @@ async function collectWebsite(
   const pages: PageItem[] = [];
   const queue: string[] = [rootUrl.href];
   const visitedPages = new Set<string>();
+
+  const getStats = () => ({
+    pages: pages.length,
+    assets: assetsMap.size,
+    styles: stylesCount,
+    scripts: scriptsCount,
+    images: imagesCount,
+    fonts: fontsCount,
+  });
 
   const addAsset = (
     rawUrl: string | undefined,
@@ -498,6 +551,11 @@ async function collectWebsite(
       const name = resolved.pathname.split("/").pop()?.split("?")[0] || `asset.${defaultExt(itemType)}`;
       const localPath = assetLocalPath(resolved, baseDomain, itemType);
 
+      if (itemType === "style") stylesCount++;
+      else if (itemType === "script") scriptsCount++;
+      else if (itemType === "image") imagesCount++;
+      else if (itemType === "font") fontsCount++;
+
       const item: AssetItem = {
         url: resolved.href,
         cleanKey,
@@ -506,6 +564,20 @@ async function collectWebsite(
         name,
       };
       assetsMap.set(cleanKey, item);
+
+      if (onEvent) {
+        onEvent({
+          type: "asset",
+          item: {
+            url: item.url,
+            type: item.type,
+            name: item.name,
+            localPath: item.localPath,
+          },
+          stats: getStats(),
+        });
+      }
+
       return item;
     } catch {
       return undefined;
@@ -610,13 +682,32 @@ async function collectWebsite(
           const html = await response.text();
           const $ = cheerio.load(html);
           const pageLocal = pageLocalPath(currentUrl);
-
-          pages.push({
+          const pageTitle = $("title").first().text().trim() || pageLocal;
+          const pageItem: PageItem = {
             url: currentUrl.href,
             name: pageLocal,
             localPath: pageLocal,
             html,
-          });
+          };
+          pages.push(pageItem);
+
+          if (onEvent) {
+            onEvent({
+              type: "page",
+              item: {
+                url: pageItem.url,
+                name: pageItem.name,
+                localPath: pageItem.localPath,
+                title: pageTitle,
+              },
+              stats: getStats(),
+            });
+            onEvent({
+              type: "status",
+              message: `Crawled ${pageLocal} (${pages.length} pages, ${assetsMap.size} assets)...`,
+              stats: getStats(),
+            });
+          }
 
           // Extract all internal links
           $("a[href]").each((_, el) => {
@@ -837,6 +928,7 @@ export async function POST(request: NextRequest) {
 
     let urlValue: unknown;
     let maxPages = 0; // 0 = Full Site / Unlimited (up to 5000 pages)
+    let isStream = false;
 
     if (isForm) {
       const formData = await request.formData();
@@ -853,10 +945,125 @@ export async function POST(request: NextRequest) {
         const parsed = Number(body.maxPages);
         maxPages = isNaN(parsed) ? 0 : parsed;
       }
+      isStream = Boolean(body.stream);
     }
 
     const targetUrl = validateUrl(urlValue);
     const cacheKey = getCacheKey(targetUrl.origin, maxPages);
+
+    // Streaming scan mode (real-time discovered files)
+    if (!isDownload && isStream) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          const send = (payload: any) => {
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+            } catch {}
+          };
+
+          try {
+            if (scanCache.has(cacheKey)) {
+              const cached = scanCache.get(cacheKey)!;
+              const initialStats = {
+                pages: cached.pages.length,
+                assets: cached.assets.length,
+                styles: cached.assets.filter((a) => a.type === "style").length,
+                scripts: cached.assets.filter((a) => a.type === "script").length,
+                images: cached.assets.filter((a) => a.type === "image").length,
+                fonts: cached.assets.filter((a) => a.type === "font").length,
+              };
+              send({
+                type: "status",
+                message: `Loaded ${cached.host} from cache (${cached.pages.length} pages, ${cached.assets.length} assets)...`,
+                stats: initialStats,
+              });
+              for (const p of cached.pages) {
+                send({
+                  type: "page",
+                  item: { url: p.url, name: p.name, localPath: p.localPath },
+                  stats: initialStats,
+                });
+              }
+              for (const a of cached.assets.slice(0, 150)) {
+                send({
+                  type: "asset",
+                  item: { url: a.url, type: a.type, name: a.name, localPath: a.localPath },
+                  stats: initialStats,
+                });
+              }
+              send({
+                type: "done",
+                result: {
+                  title: cached.title,
+                  host: cached.host,
+                  origin: cached.origin,
+                  pages: cached.pages.map((p) => ({ url: p.url, name: p.name, localPath: p.localPath })),
+                  assets: cached.assets.map((a) => ({ url: a.url, type: a.type, name: a.name, localPath: a.localPath, content: a.content })),
+                },
+              });
+              controller.close();
+              return;
+            }
+
+            send({
+              type: "status",
+              message: `Connecting to ${targetUrl.hostname}...`,
+              stats: { pages: 0, assets: 0, styles: 0, scripts: 0, images: 0, fonts: 0 },
+            });
+
+            const collected = await collectWebsite(targetUrl, maxPages, (event) => {
+              send(event);
+            });
+
+            const siteData: CachedSession = {
+              ...collected,
+              url: targetUrl.href,
+              cachedAt: Date.now(),
+            };
+            scanCache.set(cacheKey, siteData);
+
+            send({
+              type: "done",
+              result: {
+                title: siteData.title,
+                host: siteData.host,
+                origin: siteData.origin,
+                pages: siteData.pages.map((p) => ({
+                  url: p.url,
+                  name: p.name,
+                  localPath: p.localPath,
+                })),
+                assets: siteData.assets.map((a) => ({
+                  url: a.url,
+                  type: a.type,
+                  name: a.name,
+                  localPath: a.localPath,
+                  content: a.content,
+                })),
+              },
+            });
+          } catch (err: any) {
+            send({
+              type: "error",
+              error: err?.message || "Failed to scan website",
+            });
+          } finally {
+            try {
+              controller.close();
+            } catch {}
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "Connection": "keep-alive",
+        },
+      });
+    }
 
     let siteData: CachedSession;
 

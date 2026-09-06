@@ -24,6 +24,15 @@ type ScanResult = {
   assets: Asset[];
 };
 
+type LiveFeedItem = {
+  id: string;
+  type: string;
+  name: string;
+  localPath: string;
+  url: string;
+  timestamp: string;
+};
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [maxPages, setMaxPages] = useState(0); // 0 = Full Site / Unlimited
@@ -34,6 +43,16 @@ export default function Home() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [liveFeed, setLiveFeed] = useState<LiveFeedItem[]>([]);
+  const [liveStats, setLiveStats] = useState({
+    pages: 0,
+    assets: 0,
+    styles: 0,
+    scripts: 0,
+    images: 0,
+    fonts: 0,
+  });
+  const [showLiveFeed, setShowLiveFeed] = useState(true);
 
   async function scan(event: FormEvent) {
     event.preventDefault();
@@ -41,39 +60,143 @@ export default function Home() {
 
     setLoading(true);
     setResult(null);
+    setLiveFeed([]);
+    setLiveStats({
+      pages: 0,
+      assets: 0,
+      styles: 0,
+      scripts: 0,
+      images: 0,
+      fonts: 0,
+    });
     setDownloadProgress(8);
     setStatus("Connecting to target server & checking sitemaps...");
-
-    let fakeScanProg = 8;
-    const scanInterval = window.setInterval(() => {
-      fakeScanProg = Math.min(92, fakeScanProg + Math.max(1, Math.ceil((92 - fakeScanProg) / 8)));
-      setDownloadProgress(fakeScanProg);
-      if (fakeScanProg > 15 && fakeScanProg <= 40) {
-        setStatus("Crawling internal page hierarchy & link graphs...");
-      } else if (fakeScanProg > 40 && fakeScanProg <= 70) {
-        setStatus("Scraping CSS stylesheets, web fonts & scripts...");
-      } else if (fakeScanProg > 70) {
-        setStatus("Resolving deep media, responsive images & assets...");
-      }
-    }, 450);
 
     try {
       const response = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim(), maxPages }),
+        body: JSON.stringify({ url: url.trim(), maxPages, stream: true }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to scan this URL");
-      setResult(data);
-      setDownloadProgress(100);
-      setStatus(
-        `Scan complete! Discovered ${data.pages?.length || 0} pages and ${data.assets?.length || 0} assets.`
-      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.error || "Unable to scan this URL");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        const data = await response.json();
+        setResult(data);
+        setDownloadProgress(100);
+        setStatus(
+          `Scan complete! Discovered ${data.pages?.length || 0} pages and ${data.assets?.length || 0} assets.`
+        );
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const jsonStr = trimmed.slice(5).trim();
+          if (!jsonStr) continue;
+
+          try {
+            const eventData = JSON.parse(jsonStr);
+
+            if (eventData.type === "status") {
+              setStatus(eventData.message);
+              if (eventData.stats) {
+                setLiveStats((prev) => ({ ...prev, ...eventData.stats }));
+              }
+            } else if (eventData.type === "page") {
+              const item = eventData.item;
+              const now = new Date();
+              const timeStr = now.toLocaleTimeString([], {
+                hour12: false,
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              });
+              setLiveFeed((prev) => [
+                {
+                  id: `page_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                  type: "page",
+                  name: item.name,
+                  localPath: item.localPath,
+                  url: item.url,
+                  timestamp: timeStr,
+                },
+                ...prev.slice(0, 99),
+              ]);
+              if (eventData.stats) {
+                setLiveStats((prev) => ({ ...prev, ...eventData.stats }));
+                const pCount = eventData.stats.pages;
+                const aCount = eventData.stats.assets;
+                const prog = Math.min(
+                  92,
+                  Math.max(15, Math.floor(15 + pCount * 6 + Math.min(65, aCount * 0.4)))
+                );
+                setDownloadProgress(prog);
+                setStatus(`Crawled internal page: ${item.localPath} (${pCount} pages, ${aCount} assets)...`);
+              }
+            } else if (eventData.type === "asset") {
+              const item = eventData.item;
+              const now = new Date();
+              const timeStr = now.toLocaleTimeString([], {
+                hour12: false,
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              });
+              setLiveFeed((prev) => [
+                {
+                  id: `asset_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                  type: item.type || "file",
+                  name: item.name,
+                  localPath: item.localPath,
+                  url: item.url,
+                  timestamp: timeStr,
+                },
+                ...prev.slice(0, 99),
+              ]);
+              if (eventData.stats) {
+                setLiveStats((prev) => ({ ...prev, ...eventData.stats }));
+                const aCount = eventData.stats.assets;
+                const prog = Math.min(
+                  92,
+                  Math.max(20, Math.floor(20 + Math.min(72, aCount * 0.25)))
+                );
+                setDownloadProgress(prog);
+              }
+            } else if (eventData.type === "done") {
+              setResult(eventData.result);
+              setDownloadProgress(100);
+              setStatus(
+                `Scan complete! Discovered ${eventData.result.pages?.length || 0} pages and ${eventData.result.assets?.length || 0} assets.`
+              );
+            } else if (eventData.type === "error") {
+              throw new Error(eventData.error || "Scan failed");
+            }
+          } catch (err: any) {
+            console.error("Error processing stream chunk:", err);
+          }
+        }
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to scan website");
     } finally {
-      window.clearInterval(scanInterval);
       setLoading(false);
     }
   }
@@ -390,6 +513,101 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Real-Time Discovered Files Feed (Shows while scanning) */}
+        {(loading || (!result && liveFeed.length > 0)) && (
+          <section className="live-stream-section">
+            <div className="live-stream-header">
+              <div className="live-stream-title-group">
+                <div className="live-pulse-indicator">
+                  <span className="live-pulse-radar" />
+                  <span className="live-pulse-core" />
+                </div>
+                <div>
+                  <h3 className="live-stream-heading">
+                    <span>⚡ Real-Time Discovered Files Feed</span>
+                  </h3>
+                  <p className="live-stream-subheading">
+                    Discovering internal pages, styles, scripts &amp; media assets live as crawler runs...
+                  </p>
+                </div>
+              </div>
+
+              {/* Real-time stats chips */}
+              <div className="live-stats-row">
+                <div className="live-stat-chip">
+                  <span className="chip-dot dot-page" />
+                  <span className="chip-label">Pages</span>
+                  <span className="chip-val">{liveStats.pages}</span>
+                </div>
+                <div className="live-stat-chip">
+                  <span className="chip-dot dot-css" />
+                  <span className="chip-label">CSS</span>
+                  <span className="chip-val">{liveStats.styles}</span>
+                </div>
+                <div className="live-stat-chip">
+                  <span className="chip-dot dot-js" />
+                  <span className="chip-label">JS</span>
+                  <span className="chip-val">{liveStats.scripts}</span>
+                </div>
+                <div className="live-stat-chip">
+                  <span className="chip-dot dot-img" />
+                  <span className="chip-label">Images</span>
+                  <span className="chip-val">{liveStats.images}</span>
+                </div>
+                <div className="live-stat-chip">
+                  <span className="chip-dot dot-font" />
+                  <span className="chip-label">Fonts</span>
+                  <span className="chip-val">{liveStats.fonts}</span>
+                </div>
+                <div className="live-stat-chip chip-total">
+                  <span className="chip-label">Total Found</span>
+                  <span className="chip-val">{liveStats.assets + liveStats.pages}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Live streaming terminal window */}
+            <div className="live-terminal-box">
+              <div className="terminal-bar-top">
+                <div className="terminal-dots">
+                  <span className="t-dot red" />
+                  <span className="t-dot yellow" />
+                  <span className="t-dot green" />
+                </div>
+                <span className="terminal-title">live_crawler_telemetry.log</span>
+                <span className="terminal-counter">
+                  {liveFeed.length} live files streamed
+                </span>
+              </div>
+
+              <div className="terminal-stream-list">
+                {liveFeed.length === 0 ? (
+                  <div className="terminal-empty-state">
+                    <span className="terminal-spinner" />
+                    <span>Connecting to website &amp; inspecting root DOM...</span>
+                  </div>
+                ) : (
+                  liveFeed.map((item) => (
+                    <div key={item.id} className="terminal-stream-row">
+                      <span className="stream-time">{item.timestamp}</span>
+                      <span className={`stream-tag tag-${item.type}`}>
+                        {item.type.toUpperCase()}
+                      </span>
+                      <span className="stream-path" title={item.localPath}>
+                        {item.localPath}
+                      </span>
+                      <span className="stream-origin" title={item.url}>
+                        {item.url}
+                      </span>
+                      <span className="stream-status">✓ FOUND</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Workspace & Results Section */}
         {result ? (
           <section className="results-section">
@@ -400,15 +618,62 @@ export default function Home() {
                 <p className="results-origin">Target Origin: <code>{result.origin}</code></p>
               </div>
 
-              <button
-                onClick={() => download()}
-                disabled={downloading}
-                className="btn-download-action"
-              >
-                <span>Download Complete Offline ZIP</span>
-                <span className="dl-arrow">↓</span>
-              </button>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                {liveFeed.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowLiveFeed(!showLiveFeed)}
+                    className="toggle-stream-btn"
+                  >
+                    <span>{showLiveFeed ? "Hide Live Log" : `Show Discovery Log (${liveFeed.length})`}</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => download()}
+                  disabled={downloading}
+                  className="btn-download-action"
+                >
+                  <span>Download Complete Offline ZIP</span>
+                  <span className="dl-arrow">↓</span>
+                </button>
+              </div>
             </div>
+
+            {/* Optional Collapsible Live Log after scan completes */}
+            {result && showLiveFeed && liveFeed.length > 0 && (
+              <div className="live-stream-section" style={{ marginTop: "0", marginBottom: "28px" }}>
+                <div className="live-stream-header" style={{ marginBottom: "14px" }}>
+                  <div className="live-stream-title-group">
+                    <span style={{ fontSize: "14px", fontWeight: 700, color: "#34d399" }}>
+                      ✓ Scan Completed — Live Stream Capture History
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                    Showing latest {liveFeed.length} streamed files
+                  </span>
+                </div>
+                <div className="live-terminal-box">
+                  <div className="terminal-stream-list" style={{ maxHeight: "200px" }}>
+                    {liveFeed.map((item) => (
+                      <div key={item.id} className="terminal-stream-row">
+                        <span className="stream-time">{item.timestamp}</span>
+                        <span className={`stream-tag tag-${item.type}`}>
+                          {item.type.toUpperCase()}
+                        </span>
+                        <span className="stream-path" title={item.localPath}>
+                          {item.localPath}
+                        </span>
+                        <span className="stream-origin" title={item.url}>
+                          {item.url}
+                        </span>
+                        <span className="stream-status">✓ STORED</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Stats Dashboard Grid */}
             <div className="stats-dashboard">
