@@ -106,6 +106,8 @@ function detectedType(pathname: string, fallback: string): string {
   if (["mp3", "wav", "ogg", "m4a", "aac", "flac"].includes(ext)) return "audio";
   if (["jpg", "jpeg", "png", "gif", "svg", "webp", "avif", "ico", "bmp", "tiff"].includes(ext))
     return "image";
+  if (["glb", "gltf", "bin", "splinecode", "wasm", "hdr", "exr", "obj", "mtl", "fbx", "usdz"].includes(ext))
+    return "model";
   if (["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip", "rar", "txt", "xml", "json", "csv"].includes(ext))
     return "file";
   return fallback;
@@ -121,6 +123,8 @@ function defaultExt(type: string): string {
       return "woff2";
     case "image":
       return "jpg";
+    case "model":
+      return "glb";
     case "video":
       return "mp4";
     case "audio":
@@ -724,10 +728,12 @@ async function collectWebsite(
                   "css", "js", "jpg", "jpeg", "png", "gif", "svg", "webp", "avif",
                   "ico", "pdf", "zip", "rar", "mp4", "webm", "mp3", "wav",
                   "woff", "woff2", "ttf", "otf", "json", "xml", "csv", "txt",
-                  "doc", "docx", "xls", "xlsx", "ppt", "pptx"
+                  "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+                  "glb", "gltf", "bin", "splinecode", "wasm", "hdr", "exr", "usdz", "obj", "mtl", "fbx"
                 ].includes(ext || "")
               ) {
-                addAsset(link.href, "file", currentUrl);
+                const is3d = ["glb", "gltf", "bin", "splinecode", "wasm", "hdr", "exr", "usdz", "obj", "mtl", "fbx"].includes(ext || "");
+                addAsset(link.href, is3d ? "model" : "file", currentUrl);
               } else {
                 link.hash = "";
                 const norm = getNormPageKey(link);
@@ -836,6 +842,22 @@ async function collectWebsite(
               addAsset(cleanUrlString($(el).attr("content")), "image", currentUrl);
             }
           });
+
+          // 3D Model Elements (model-viewer, spline-viewer, a-asset-item, [data-model], [data-scene])
+          $("model-viewer, spline-viewer, a-asset-item, [data-model], [data-scene], [data-spline]").each((_, el) => {
+            for (const attr of ["src", "url", "data-model", "data-scene", "data-spline", "poster"]) {
+              const val = cleanUrlString($(el).attr(attr));
+              if (val) addAsset(val, "model", currentUrl);
+            }
+          });
+
+          // Scan all script tags for 3D model filenames (.glb, .gltf, .bin, .splinecode, .wasm, .hdr, .exr)
+          $("script").each((_, el) => {
+            const scriptText = $(el).html() || "";
+            for (const m of scriptText.matchAll(/["']([^"'\s()<>{}]+\.(?:glb|gltf|bin|splinecode|wasm|hdr|exr|usdz|obj|mtl|fbx)(?:\?[^"'\s]*)?)["']/gi)) {
+              addAsset(cleanUrlString(m[1]), "model", currentUrl);
+            }
+          });
         } catch {}
       },
       6
@@ -897,6 +919,37 @@ async function collectWebsite(
         } catch {}
       },
       8
+    );
+  }
+
+  // Deep JS scanning: Inspect internal scripts for 3D model files (.glb, .gltf, .bin, .splinecode, .wasm)
+  const scannedJsUrls = new Set<string>();
+  const jsToInspect = [...assetsMap.values()]
+    .filter((a) => a.type === "script" && !scannedJsUrls.has(a.url) && a.url.startsWith(siteOrigin))
+    .slice(0, 30);
+
+  if (jsToInspect.length > 0) {
+    await pMap(
+      jsToInspect,
+      async (jsAsset) => {
+        scannedJsUrls.add(jsAsset.url);
+        try {
+          const res = await fetch(jsAsset.url, {
+            headers: {
+              ...BROWSER_HEADERS,
+              Referer: rootUrl.href,
+            },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (!res.ok) return;
+          const jsText = await res.text();
+          const jsUrl = new URL(jsAsset.url);
+          for (const m of jsText.matchAll(/["']([^"'\s()<>{}]+\.(?:glb|gltf|bin|splinecode|wasm|hdr|exr|usdz|obj|mtl|fbx)(?:\?[^"'\s]*)?)["']/gi)) {
+            addAsset(cleanUrlString(m[1]), "model", jsUrl);
+          }
+        } catch {}
+      },
+      6
     );
   }
 
@@ -1274,6 +1327,66 @@ export async function POST(request: NextRequest) {
       ].join("\n")
     );
 
+    // 1-Click Local Server Script for Windows (Bypasses browser file:// CORS restrictions for WebGL & 3D models)
+    zip.file(
+      "start-server.bat",
+      `@echo off
+title SiteClonePro - Offline 3D Web Server
+echo ================================================================
+echo           SiteClonePro Offline Local Server Launcher
+echo ================================================================
+echo.
+echo Notice: Modern 3D/WebGL websites (Three.js, GLTF, Spline) require
+echo an HTTP server because browsers block 3D models on file:// protocol.
+echo.
+where npx >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    echo [OK] Node.js detected. Starting server on http://localhost:8080 ...
+    start http://localhost:8080
+    npx -y serve -s . -l 8080
+    exit /b
+)
+where python >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    echo [OK] Python detected. Starting server on http://localhost:8080 ...
+    start http://localhost:8080
+    python -m http.server 8080
+    exit /b
+)
+echo [Warning] Neither Node.js (npx) nor Python was found on your system.
+echo To run 3D WebGL scenes without CORS errors:
+echo 1. Install Node.js (https://nodejs.org) OR Python (https://python.org)
+echo 2. Or open this folder in VS Code and click "Go Live" (Live Server extension).
+echo.
+pause
+`
+    );
+
+    // 1-Click Local Server Script for Mac/Linux
+    zip.file(
+      "start-server.sh",
+      `#!/bin/bash
+echo "================================================================"
+echo "          SiteClonePro Offline Local Server Launcher"
+echo "================================================================"
+echo ""
+echo "Notice: WebGL 3D scenes require an HTTP server to bypass file:// CORS."
+echo ""
+if command -v npx >/dev/null 2>&1; then
+    echo "Starting local server with npx serve on http://localhost:8080 ..."
+    npx -y serve -s . -l 8080
+elif command -v python3 >/dev/null 2>&1; then
+    echo "Starting local server with python3 on http://localhost:8080 ..."
+    python3 -m http.server 8080
+elif command -v python >/dev/null 2>&1; then
+    echo "Starting local server with python on http://localhost:8080 ..."
+    python -m http.server 8080
+else
+    echo "Please install Node.js or Python to view 3D assets locally."
+fi
+`
+    );
+
     zip.file(
       "README.txt",
       [
@@ -1281,15 +1394,22 @@ export async function POST(request: NextRequest) {
         `               ${siteData.host} Offline Website Mirror`,
         `=============================================================`,
         ``,
-        `All pages, stylesheets, javascripts, images, and fonts have been`,
-        `mirrored to exact relative paths for 100% offline browsing.`,
+        `All pages, stylesheets, scripts, 3D models, images, and fonts`,
+        `have been mirrored to exact relative paths for 100% offline browsing.`,
         ``,
-        `How to open:`,
-        `1. Open "index.html" directly in any browser (Chrome, Edge, Firefox).`,
-        `2. All subpages and assets work locally without an active web server.`,
-        `3. If you prefer running a local server, you can run:`,
-        `   npx serve .`,
-        `   or python -m http.server 8080`,
+        `How to open / run:`,
+        `-----------------`,
+        `A. STANDARD WEBSITES:`,
+        `   1. Double-click "index.html" directly in any browser (Chrome, Edge, Firefox).`,
+        `   2. All subpages and assets work locally without an active web server.`,
+        ``,
+        `B. 3D & WebGL WEBSITES (Three.js, Spline, GLTF, Babylon.js):`,
+        `   * IMPORTANT: Modern browsers block fetch() requests for 3D models (.glb, .gltf, .wasm)`,
+        `     over the "file://" protocol due to browser CORS security policies.`,
+        `   * To run 3D websites with full rendering:`,
+        `     - Windows: Simply double-click "start-server.bat"`,
+        `     - Mac / Linux: Run "./start-server.sh"`,
+        `     - Or in terminal run: npx serve . (or python -m http.server 8080)`,
         `=============================================================`,
       ].join("\n")
     );
