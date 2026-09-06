@@ -152,8 +152,22 @@ function pageLocalPath(url: URL): string {
   return `${segments.join("/")}/index.html`;
 }
 
-function assetLocalPath(url: URL, siteOrigin: string, fallbackType: string): string {
-  if (url.origin === siteOrigin) {
+function isSameSiteHost(host1: string, host2: string): boolean {
+  return host1.replace(/^www\./i, "").toLowerCase() === host2.replace(/^www\./i, "").toLowerCase();
+}
+
+function assetLocalPath(url: URL, siteOriginOrHost: string, fallbackType: string): string {
+  const cleanTargetHost = siteOriginOrHost
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .split("/")[0]
+    .toLowerCase();
+
+  const isInternal =
+    url.origin === siteOriginOrHost ||
+    url.hostname.replace(/^www\./i, "").toLowerCase() === cleanTargetHost;
+
+  if (isInternal) {
     let pathname = decodeURIComponent(url.pathname).replace(/^\/+/, "");
     if (!pathname) {
       pathname = `assets/${fallbackType}/asset_${Date.now()}`;
@@ -432,7 +446,7 @@ function rewriteHtml(
 
 async function collectWebsite(
   rootUrl: URL,
-  maxPages = 100
+  maxPages = 0
 ): Promise<{
   title: string;
   host: string;
@@ -442,8 +456,20 @@ async function collectWebsite(
 }> {
   cleanOldCache();
 
-  const siteOrigin = rootUrl.origin;
-  const host = rootUrl.hostname;
+  let siteOrigin = rootUrl.origin;
+  let host = rootUrl.hostname;
+  const baseDomain = rootUrl.hostname.replace(/^www\./i, "").toLowerCase();
+
+  const isSameSite = (testUrl: URL): boolean => {
+    if (!["http:", "https:"].includes(testUrl.protocol)) return false;
+    return testUrl.hostname.replace(/^www\./i, "").toLowerCase() === baseDomain;
+  };
+
+  const getNormPageKey = (u: URL): string => {
+    const normHost = u.hostname.replace(/^www\./i, "").toLowerCase();
+    return `${u.protocol}//${normHost}${u.pathname.replace(/\/+$/, "")}`;
+  };
+
   const assetsMap = new Map<string, AssetItem>();
   const pages: PageItem[] = [];
   const queue: string[] = [rootUrl.href];
@@ -462,14 +488,15 @@ async function collectWebsite(
       const resolved = new URL(clean, sourceUrl);
       if (!["http:", "https:"].includes(resolved.protocol)) return undefined;
 
-      const cleanKey = resolved.origin + resolved.pathname;
+      const normHost = resolved.hostname.replace(/^www\./i, "").toLowerCase();
+      const cleanKey = `${resolved.protocol}//${normHost}${resolved.pathname}`;
       if (assetsMap.has(cleanKey)) {
         return assetsMap.get(cleanKey);
       }
 
       const itemType = detectedType(resolved.pathname, type);
       const name = resolved.pathname.split("/").pop()?.split("?")[0] || `asset.${defaultExt(itemType)}`;
-      const localPath = assetLocalPath(resolved, siteOrigin, itemType);
+      const localPath = assetLocalPath(resolved, baseDomain, itemType);
 
       const item: AssetItem = {
         url: resolved.href,
@@ -485,27 +512,51 @@ async function collectWebsite(
     }
   };
 
-  // Check sitemap for internal pages
-  for (const sitemapPath of ["/sitemap.xml", "/sitemap_index.xml"]) {
+  // Recursive sitemap discovery (including sitemap indexes)
+  async function parseSitemap(sitemapUrl: URL, depth = 0) {
+    if (depth > 2) return;
     try {
-      const sitemapUrl = new URL(sitemapPath, rootUrl);
       const res = await fetch(sitemapUrl, {
         headers: BROWSER_HEADERS,
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(8000),
       });
       if (res.ok) {
         const xml = await res.text();
         const $xml = cheerio.load(xml, { xmlMode: true });
-        $xml("loc").each((_, el) => {
-          const loc = $xml(el).text().trim();
+
+        const childSitemaps: URL[] = [];
+        $xml("sitemap > loc, sitemapindex > sitemap > loc").each((_, el) => {
+          const loc = cleanUrlString($xml(el).text());
           try {
-            const parsed = new URL(loc);
-            if (parsed.origin === siteOrigin && !queue.includes(parsed.href)) {
-              queue.push(parsed.href);
+            const parsed = new URL(loc, sitemapUrl);
+            if (isSameSite(parsed)) childSitemaps.push(parsed);
+          } catch {}
+        });
+
+        $xml("url > loc").each((_, el) => {
+          const loc = cleanUrlString($xml(el).text());
+          try {
+            const parsed = new URL(loc, sitemapUrl);
+            if (isSameSite(parsed)) {
+              parsed.hash = "";
+              const norm = getNormPageKey(parsed);
+              if (!visitedPages.has(norm) && !queue.includes(parsed.href)) {
+                queue.push(parsed.href);
+              }
             }
           } catch {}
         });
+
+        for (const child of childSitemaps.slice(0, 10)) {
+          await parseSitemap(child, depth + 1);
+        }
       }
+    } catch {}
+  }
+
+  for (const sitemapPath of ["/sitemap.xml", "/sitemap_index.xml", "/sitemap/sitemap.xml"]) {
+    try {
+      await parseSitemap(new URL(sitemapPath, rootUrl));
     } catch {}
   }
 
@@ -520,8 +571,8 @@ async function collectWebsite(
       try {
         const parsed = new URL(nextRaw);
         parsed.hash = "";
-        const normKey = parsed.origin + parsed.pathname.replace(/\/+$/, "");
-        if (!visitedPages.has(normKey) && parsed.origin === siteOrigin) {
+        const normKey = getNormPageKey(parsed);
+        if (!visitedPages.has(normKey) && isSameSite(parsed)) {
           visitedPages.add(normKey);
           batchUrls.push(parsed);
         }
@@ -542,6 +593,17 @@ async function collectWebsite(
             signal: AbortSignal.timeout(12000),
           });
 
+          // Follow redirect origin on root page (e.g. non-www to www)
+          if (pages.length === 0 && response.url) {
+            try {
+              const finalUrl = new URL(response.url);
+              if (isSameSite(finalUrl)) {
+                siteOrigin = finalUrl.origin;
+                host = finalUrl.hostname;
+              }
+            } catch {}
+          }
+
           const contentType = response.headers.get("content-type") || "";
           if (!response.ok || !contentType.includes("text/html")) return;
 
@@ -556,13 +618,13 @@ async function collectWebsite(
             html,
           });
 
-          // Extract all links
+          // Extract all internal links
           $("a[href]").each((_, el) => {
             const rawHref = cleanUrlString($(el).attr("href"));
             if (!rawHref) return;
             try {
               const link = new URL(rawHref, currentUrl);
-              if (link.origin !== siteOrigin) return;
+              if (!isSameSite(link)) return;
               if (["mailto:", "tel:", "javascript:"].includes(link.protocol)) return;
 
               const ext = link.pathname.split(".").pop()?.toLowerCase();
@@ -577,7 +639,7 @@ async function collectWebsite(
                 addAsset(link.href, "file", currentUrl);
               } else {
                 link.hash = "";
-                const norm = link.origin + link.pathname.replace(/\/+$/, "");
+                const norm = getNormPageKey(link);
                 if (!visitedPages.has(norm) && !queue.includes(link.href)) {
                   queue.push(link.href);
                 }
@@ -841,10 +903,16 @@ export async function POST(request: NextRequest) {
 
     for (const a of siteData.assets) {
       assetUrlMap.set(a.cleanKey, a.localPath);
+      try {
+        const u = new URL(a.url);
+        assetUrlMap.set(u.pathname, a.localPath);
+      } catch {}
     }
     for (const p of siteData.pages) {
       try {
         const u = new URL(p.url);
+        pageUrlMap.set(u.pathname, p.localPath);
+        pageUrlMap.set(u.pathname.replace(/\/+$/, ""), p.localPath);
         pageUrlMap.set(u.origin + u.pathname, p.localPath);
         pageUrlMap.set(u.origin + u.pathname.replace(/\/+$/, ""), p.localPath);
       } catch {}
@@ -854,10 +922,10 @@ export async function POST(request: NextRequest) {
       try {
         const clean = cleanUrlString(rawUrl);
         const u = new URL(clean, source);
-        const cleanKey = u.origin + u.pathname;
-        if (assetUrlMap.has(cleanKey)) {
-          return assetUrlMap.get(cleanKey);
-        }
+        const normHost = u.hostname.replace(/^www\./i, "").toLowerCase();
+        const cleanKey = `${u.protocol}//${normHost}${u.pathname}`;
+        if (assetUrlMap.has(cleanKey)) return assetUrlMap.get(cleanKey);
+        if (assetUrlMap.has(u.pathname)) return assetUrlMap.get(u.pathname);
       } catch {}
       return undefined;
     };
@@ -866,9 +934,11 @@ export async function POST(request: NextRequest) {
       try {
         const clean = cleanUrlString(rawUrl);
         const u = new URL(clean, source);
-        if (u.origin === siteData.origin) {
-          const cleanKey = u.origin + u.pathname;
-          const cleanNorm = u.origin + u.pathname.replace(/\/+$/, "");
+        const targetBaseDomain = targetUrl.hostname.replace(/^www\./i, "").toLowerCase();
+        const isInternal = u.hostname.replace(/^www\./i, "").toLowerCase() === targetBaseDomain;
+        if (isInternal) {
+          const cleanKey = u.pathname;
+          const cleanNorm = u.pathname.replace(/\/+$/, "");
           if (pageUrlMap.has(cleanKey)) return pageUrlMap.get(cleanKey);
           if (pageUrlMap.has(cleanNorm)) return pageUrlMap.get(cleanNorm);
           // Fallback calculation for any internal link

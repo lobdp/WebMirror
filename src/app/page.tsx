@@ -41,7 +41,22 @@ export default function Home() {
 
     setLoading(true);
     setResult(null);
-    setStatus("Scanning pages and discovering CSS, JS, fonts, images...");
+    setDownloadProgress(8);
+    setStatus("Connecting to target server & checking sitemaps...");
+
+    let fakeScanProg = 8;
+    const scanInterval = window.setInterval(() => {
+      fakeScanProg = Math.min(92, fakeScanProg + Math.max(1, Math.ceil((92 - fakeScanProg) / 8)));
+      setDownloadProgress(fakeScanProg);
+      if (fakeScanProg > 15 && fakeScanProg <= 40) {
+        setStatus("Crawling internal page hierarchy & link graphs...");
+      } else if (fakeScanProg > 40 && fakeScanProg <= 70) {
+        setStatus("Scraping CSS stylesheets, web fonts & scripts...");
+      } else if (fakeScanProg > 70) {
+        setStatus("Resolving deep media, responsive images & assets...");
+      }
+    }, 450);
+
     try {
       const response = await fetch("/api/scan", {
         method: "POST",
@@ -51,12 +66,14 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Unable to scan this URL");
       setResult(data);
+      setDownloadProgress(100);
       setStatus(
         `Scan complete! Discovered ${data.pages?.length || 0} pages and ${data.assets?.length || 0} assets.`
       );
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to scan website");
     } finally {
+      window.clearInterval(scanInterval);
       setLoading(false);
     }
   }
