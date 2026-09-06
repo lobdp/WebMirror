@@ -402,7 +402,48 @@ function rewriteHtml(
     }
   });
 
-  // Resilient offline script: ensures offline browsing never hangs on preloader spinners
+  // Resilient offline script: ensures offline browsing never hangs on preloader spinners, and auto-routes Live Server subfolder requests
+  $("head").prepend(`
+<script>
+(function(){
+  // Universal Offline Subfolder & Live Server fetch proxy
+  try {
+    var p = window.location.pathname;
+    var idx = p.lastIndexOf('/');
+    if (idx > 0) {
+      var basePrefix = p.substring(0, idx + 1);
+      if (basePrefix !== '/' && window.location.protocol.indexOf('http') === 0) {
+        var origFetch = window.fetch;
+        if (origFetch) {
+          window.fetch = function(input, init) {
+            if (typeof input === 'string') {
+              if (input.startsWith('/') && !input.startsWith('//') && !input.startsWith(basePrefix)) {
+                input = basePrefix + input.replace(/^\\/+/, '');
+              }
+            } else if (input && typeof input.url === 'string') {
+              var u = input.url;
+              if (u.startsWith('/') && !u.startsWith('//') && !u.startsWith(basePrefix)) {
+                input = new Request(basePrefix + u.replace(/^\\/+/, ''), input);
+              }
+            }
+            return origFetch.call(this, input, init);
+          };
+        }
+        var origOpen = XMLHttpRequest.prototype.open;
+        if (origOpen) {
+          XMLHttpRequest.prototype.open = function(method, url) {
+            if (typeof url === 'string' && url.startsWith('/') && !url.startsWith('//') && !url.startsWith(basePrefix)) {
+              url = basePrefix + url.replace(/^\\/+/, '');
+            }
+            return origOpen.apply(this, [method, url].concat(Array.prototype.slice.call(arguments, 2)));
+          };
+        }
+      }
+    }
+  } catch(e) {}
+})();
+</script>`);
+
   $("head").append(`
 <script>
 (function(){
@@ -950,6 +991,86 @@ async function collectWebsite(
           const jsUrl = new URL(jsAsset.url);
           for (const m of jsText.matchAll(/["']([^"'\s()<>{}]+\.(?:glb|gltf|bin|splinecode|wasm|hdr|exr|usdz|obj|mtl|fbx)(?:\?[^"'\s]*)?)["']/gi)) {
             addAsset(cleanUrlString(m[1]), "model", jsUrl);
+          }
+        } catch {}
+      },
+      6
+    );
+  }
+
+  // Deep 3D Model & Scene scanning: Inspect .gltf, .obj, .mtl files for buffers (.bin), textures, and materials
+  const scannedModelUrls = new Set<string>();
+  const modelsToInspect = [...assetsMap.values()]
+    .filter(
+      (a) =>
+        (a.type === "model" ||
+          a.url.endsWith(".gltf") ||
+          a.url.endsWith(".obj") ||
+          a.url.endsWith(".mtl") ||
+          a.name.endsWith(".gltf") ||
+          a.name.endsWith(".obj") ||
+          a.name.endsWith(".mtl")) &&
+        !scannedModelUrls.has(a.url)
+    )
+    .slice(0, 40);
+
+  if (modelsToInspect.length > 0) {
+    await pMap(
+      modelsToInspect,
+      async (modelAsset) => {
+        scannedModelUrls.add(modelAsset.url);
+        try {
+          const res = await fetch(modelAsset.url, {
+            headers: {
+              ...BROWSER_HEADERS,
+              Referer: rootUrl.href,
+            },
+            signal: AbortSignal.timeout(10000),
+          });
+          if (!res.ok) return;
+          const modelText = await res.text();
+          const modelUrl = new URL(modelAsset.url);
+
+          // 1. GLTF JSON parsing: extract buffers (.bin), textures/images, and shaders
+          if (modelAsset.url.includes(".gltf") || modelAsset.name.endsWith(".gltf")) {
+            try {
+              const gltf = JSON.parse(modelText);
+              if (Array.isArray(gltf.buffers)) {
+                for (const b of gltf.buffers) {
+                  if (b?.uri && !b.uri.startsWith("data:")) {
+                    addAsset(cleanUrlString(b.uri), "model", modelUrl);
+                  }
+                }
+              }
+              if (Array.isArray(gltf.images)) {
+                for (const img of gltf.images) {
+                  if (img?.uri && !img.uri.startsWith("data:")) {
+                    addAsset(cleanUrlString(img.uri), "image", modelUrl);
+                  }
+                }
+              }
+              if (Array.isArray(gltf.shaders)) {
+                for (const s of gltf.shaders) {
+                  if (s?.uri && !s.uri.startsWith("data:")) {
+                    addAsset(cleanUrlString(s.uri), "model", modelUrl);
+                  }
+                }
+              }
+            } catch {}
+          }
+
+          // 2. Wavefront OBJ (.obj) -> parse mtllib references
+          if (modelAsset.url.includes(".obj") || modelAsset.name.endsWith(".obj")) {
+            for (const m of modelText.matchAll(/mtllib\s+([^\r\n]+)/gi)) {
+              addAsset(cleanUrlString(m[1].trim()), "model", modelUrl);
+            }
+          }
+
+          // 3. MTL material files (.mtl) -> parse map_Kd, map_Bump, map_Ks texture maps
+          if (modelAsset.url.includes(".mtl") || modelAsset.name.endsWith(".mtl")) {
+            for (const m of modelText.matchAll(/map_\w+\s+([^\r\n]+)/gi)) {
+              addAsset(cleanUrlString(m[1].trim()), "image", modelUrl);
+            }
           }
         } catch {}
       },
