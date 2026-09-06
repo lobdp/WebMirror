@@ -484,14 +484,16 @@ button, input, select {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-wrap: nowrap;
+  gap: 16px;
 }
 
 .telemetry-left {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
 .telemetry-dot {
@@ -514,13 +516,19 @@ button, input, select {
 .telemetry-status {
   font-size: 13px;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  min-width: 0;
 }
 
 .telemetry-right {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 220px;
+  width: 220px;
+  flex-shrink: 0;
 }
 
 .progress-track {
@@ -1686,5 +1694,16 @@ button, input, select {
   }
   .stream-origin {
     display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .telemetry-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .telemetry-right {
+    width: 100%;
   }
 }

@@ -495,7 +495,7 @@ export default function Home() {
             <div className="telemetry-bar">
               <div className="telemetry-left">
                 <span className={loading || downloading ? "telemetry-dot pulse-emerald" : "telemetry-dot dot-idle"} />
-                <span className="telemetry-status">{status}</span>
+                <span className="telemetry-status" title={status}>{status}</span>
               </div>
 
               {(loading || downloading) && (
