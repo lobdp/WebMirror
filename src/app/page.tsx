@@ -185,12 +185,31 @@ export default function Home() {
       <header className="navbar">
         <div className="nav-shell">
           <div className="brand-group">
-            <div className="brand-badge">
-              <span className="brand-arrow">↘</span>
+            <div className="brand-icon-wrapper">
+              <svg className="brand-icon-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="navBrandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10b981" />
+                    <stop offset="50%" stopColor="#06b6d4" />
+                    <stop offset="100%" stopColor="#6366f1" />
+                  </linearGradient>
+                  <linearGradient id="navGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#34d399" />
+                    <stop offset="100%" stopColor="#38bdf8" />
+                  </linearGradient>
+                </defs>
+                <rect x="6" y="6" width="22" height="22" rx="7" fill="rgba(16, 185, 129, 0.15)" stroke="url(#navBrandGrad)" strokeWidth="1.8" />
+                <rect x="12" y="12" width="22" height="22" rx="7" fill="#080c14" stroke="url(#navGlowGrad)" strokeWidth="2" />
+                <path d="M17 23L23 17M23 17H18M23 17V22" stroke="url(#navGlowGrad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="17" cy="23" r="2" fill="#34d399" />
+                <circle cx="28" cy="28" r="1.8" fill="#38bdf8" />
+              </svg>
             </div>
             <div className="brand-text">
-              <span className="brand-title">SiteClonePro</span>
-              <span className="brand-tag">v2.2 Pro</span>
+              <span className="brand-title">
+                Site<span className="brand-title-accent">Clone</span>
+              </span>
+              <span className="brand-tag">PRO</span>
             </div>
           </div>
 
@@ -224,18 +243,18 @@ export default function Home() {
         <section className="hero-section">
           <div className="hero-badge">
             <span className="badge-pulse" />
-            <span>Universal Recursive Offline Mirror</span>
+            <span>⚡ Next-Gen AI Website Cloning Engine</span>
           </div>
 
           <h1 className="hero-headline">
-            Mirror Any Website.
+            Clone Any Website.
             <br />
-            <span className="gradient-text">Complete. Offline. Flawless.</span>
+            <span className="gradient-text">Exact Folders. 100% Offline.</span>
           </h1>
 
           <p className="hero-subtext">
-            Preserve exact folder structures, recursively extract CSS, fonts, scripts, and media,
-            and rewrite all links into 100% offline relative paths with zero broken assets.
+            Preserve authentic directory structures, extract deep CSS &amp; web fonts,
+            and rewrite all paths into 100% offline relative links with zero broken assets.
           </p>
 
           {/* Interactive Console Card */}
@@ -643,8 +662,19 @@ export default function Home() {
         <div className="footer-shell">
           <div className="footer-left">
             <div className="footer-brand">
-              <span className="footer-mark">↘</span>
-              <strong>SiteClonePro</strong>
+              <div className="footer-icon-wrapper">
+                <svg className="footer-icon-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="6" y="6" width="22" height="22" rx="7" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" strokeWidth="1.8" />
+                  <rect x="12" y="12" width="22" height="22" rx="7" fill="#080c14" stroke="#38bdf8" strokeWidth="2" />
+                  <path d="M17 23L23 17M23 17H18M23 17V22" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="17" cy="23" r="2" fill="#34d399" />
+                  <circle cx="28" cy="28" r="1.8" fill="#38bdf8" />
+                </svg>
+              </div>
+              <span className="brand-title">
+                Site<span className="brand-title-accent">Clone</span>
+              </span>
+              <span className="brand-tag">PRO</span>
             </div>
             <p className="footer-desc">
               Universal website archiver and offline asset mirror. Preserves authentic folder

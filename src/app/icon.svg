@@ -1,34 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
   <defs>
-    <linearGradient id="wm-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="sc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#10b981" />
       <stop offset="50%" stop-color="#06b6d4" />
-      <stop offset="100%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#6366f1" />
     </linearGradient>
-    <linearGradient id="wm-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a" />
+    <linearGradient id="sc-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="sc-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e172a" />
       <stop offset="100%" stop-color="#080c14" />
     </linearGradient>
-    <filter id="wm-glow" x="-20%" y="-20%" width="140%" height="140%">
+    <filter id="sc-shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="3" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- Squircle Base -->
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#wm-bg)" stroke="#10b981" stroke-width="2" stroke-opacity="0.4" />
-  
-  <!-- Ambient Inner Glow -->
-  <rect x="4" y="4" width="56" height="56" rx="14" fill="none" stroke="url(#wm-grad)" stroke-width="1.5" stroke-opacity="0.6" />
+  <!-- Base Squircle -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#sc-bg)" stroke="#10b981" stroke-width="2" stroke-opacity="0.5" />
 
-  <!-- WebMirror Geometric Mirror Glyphs -->
-  <g filter="url(#wm-glow)">
-    <!-- Top-left to bottom-right arrow -->
-    <path d="M20 22 L44 42" stroke="url(#wm-grad)" stroke-width="4.5" stroke-linecap="round" />
-    <path d="M30 42 L44 42 L44 28" stroke="url(#wm-grad)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-    
-    <!-- Mirroring reflection dot / secondary pulse -->
-    <circle cx="21" cy="23" r="3.5" fill="#34d399" />
-    <circle cx="43" cy="41" r="2.5" fill="#38bdf8" />
+  <!-- Back Card (Source Site) -->
+  <rect x="12" y="12" width="28" height="28" rx="8" fill="rgba(16, 185, 129, 0.12)" stroke="url(#sc-grad)" stroke-width="2.5" />
+
+  <!-- Front Card (Cloned Replica) -->
+  <rect x="24" y="24" width="28" height="28" rx="8" fill="#080c14" stroke="url(#sc-glow)" stroke-width="2.5" filter="url(#sc-shadow)" />
+
+  <!-- Mirror Vector Link Arrows -->
+  <g filter="url(#sc-shadow)">
+    <path d="M22 36 L42 28" stroke="url(#sc-glow)" stroke-width="3" stroke-linecap="round" />
+    <path d="M34 26 L43 28 L40 37" stroke="url(#sc-glow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    <!-- Connector Nodes -->
+    <circle cx="22" cy="36" r="3.5" fill="#34d399" />
+    <circle cx="43" cy="28" r="3" fill="#38bdf8" />
   </g>
 </svg>
