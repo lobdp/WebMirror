@@ -51,6 +51,7 @@ export default function Home() {
     scripts: 0,
     images: 0,
     fonts: 0,
+    models: 0,
   });
   const [showLiveFeed, setShowLiveFeed] = useState(true);
 
@@ -68,6 +69,7 @@ export default function Home() {
       scripts: 0,
       images: 0,
       fonts: 0,
+      models: 0,
     });
     setDownloadProgress(8);
     setStatus("Connecting to target server & checking sitemaps...");
@@ -559,6 +561,11 @@ export default function Home() {
                   <span className="chip-label">Fonts</span>
                   <span className="chip-val">{liveStats.fonts}</span>
                 </div>
+                <div className="live-stat-chip">
+                  <span className="chip-dot dot-3d" style={{ background: "#ec4899" }} />
+                  <span className="chip-label">3D Models</span>
+                  <span className="chip-val" style={{ color: liveStats.models > 0 ? "#ec4899" : undefined }}>{liveStats.models}</span>
+                </div>
                 <div className="live-stat-chip chip-total">
                   <span className="chip-label">Total Found</span>
                   <span className="chip-val">{liveStats.assets + liveStats.pages}</span>
@@ -717,6 +724,16 @@ export default function Home() {
                 </div>
               </div>
 
+              {(counts.model || 0) > 0 && (
+                <div className="stat-card" style={{ borderColor: "rgba(236, 72, 153, 0.4)" }}>
+                  <div className="stat-icon" style={{ background: "rgba(236, 72, 153, 0.15)", color: "#ec4899" }}>🧊</div>
+                  <div className="stat-info">
+                    <span className="stat-value" style={{ color: "#ec4899" }}>{counts.model || 0}</span>
+                    <span className="stat-label">3D Models & Assets</span>
+                  </div>
+                </div>
+              )}
+
               <div className="stat-card">
                 <div className="stat-icon icon-total">📦</div>
                 <div className="stat-info">
@@ -766,6 +783,15 @@ export default function Home() {
                   >
                     Fonts ({counts.font || 0})
                   </button>
+                  {(counts.model || 0) > 0 && (
+                    <button
+                      className={activeFilter === "model" ? "pill active" : "pill"}
+                      onClick={() => setActiveFilter("model")}
+                      style={{ borderColor: activeFilter === "model" ? "#ec4899" : undefined }}
+                    >
+                      🧊 3D Models ({counts.model || 0})
+                    </button>
+                  )}
                 </div>
 
                 <div className="search-box">

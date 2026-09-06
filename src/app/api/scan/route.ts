@@ -552,6 +552,7 @@ async function collectWebsite(
   let scriptsCount = 0;
   let imagesCount = 0;
   let fontsCount = 0;
+  let modelsCount = 0;
 
   const isSameSite = (testUrl: URL): boolean => {
     if (!["http:", "https:"].includes(testUrl.protocol)) return false;
@@ -575,6 +576,7 @@ async function collectWebsite(
     scripts: scriptsCount,
     images: imagesCount,
     fonts: fontsCount,
+    models: modelsCount,
   });
 
   const addAsset = (
@@ -604,6 +606,7 @@ async function collectWebsite(
       else if (itemType === "script") scriptsCount++;
       else if (itemType === "image") imagesCount++;
       else if (itemType === "font") fontsCount++;
+      else if (itemType === "model") modelsCount++;
 
       const item: AssetItem = {
         url: resolved.href,
