@@ -618,6 +618,153 @@ export default function Home() {
           </section>
         )}
 
+        {/* Universal Framework & Stack Compatibility Section */}
+        <section className="frameworks-section" aria-label="Supported Frameworks and Technologies">
+          <div className="frameworks-header">
+            <span className="frameworks-badge">Universal Stack Engine</span>
+            <h2 className="frameworks-headline">
+              Clone Any Website. <span className="gradient-text">Any Framework. Any Stack.</span>
+            </h2>
+            <p className="frameworks-sub">
+              SiteClonePro recursively extracts 100% of rendered HTML, CSS, JavaScript, web fonts, and media across all modern CMS platforms, backend engines, and frontend frameworks.
+            </p>
+          </div>
+
+          <div className="frameworks-grid">
+            {/* WordPress & WooCommerce */}
+            <div className="framework-card">
+              <div className="framework-top">
+                <div className="framework-icon-box icon-box-wp">
+                  <span className="framework-emoji">🔷</span>
+                </div>
+                <div className="framework-meta">
+                  <h3>WordPress &amp; WooCommerce</h3>
+                  <span className="framework-depth">wp-content &amp; uploads hierarchy</span>
+                </div>
+              </div>
+              <p>
+                Flawlessly captures complete themes (Elementor, Divi, Astra), WooCommerce store layouts, plugins, and full media uploads preserving original subfolder paths.
+              </p>
+              <div className="framework-chips">
+                <span className="chip">WordPress</span>
+                <span className="chip">WooCommerce</span>
+                <span className="chip">Elementor</span>
+                <span className="chip">Divi</span>
+              </div>
+            </div>
+
+            {/* PHP & Laravel */}
+            <div className="framework-card">
+              <div className="framework-top">
+                <div className="framework-icon-box icon-box-php">
+                  <span className="framework-emoji">🐘</span>
+                </div>
+                <div className="framework-meta">
+                  <h3>PHP &amp; Laravel</h3>
+                  <span className="framework-depth">Blade, routing &amp; assets</span>
+                </div>
+              </div>
+              <p>
+                Renders and clones server-side generated pages into pure static HTML, capturing <code>assets/css</code>, <code>assets/js</code>, and rewriting dynamic route links into offline files.
+              </p>
+              <div className="framework-chips">
+                <span className="chip">Laravel</span>
+                <span className="chip">Core PHP</span>
+                <span className="chip">Symfony</span>
+                <span className="chip">CodeIgniter</span>
+              </div>
+            </div>
+
+            {/* React & Next.js */}
+            <div className="framework-card">
+              <div className="framework-top">
+                <div className="framework-icon-box icon-box-react">
+                  <span className="framework-emoji">⚛️</span>
+                </div>
+                <div className="framework-meta">
+                  <h3>React &amp; Next.js</h3>
+                  <span className="framework-depth">SSR, SSG &amp; Webpack chunks</span>
+                </div>
+              </div>
+              <p>
+                Recursively downloads client bundles, CSS modules, dynamic script chunks, SVG graphics, and responsive <code>srcset</code> images without breaking hydration offline.
+              </p>
+              <div className="framework-chips">
+                <span className="chip">Next.js</span>
+                <span className="chip">React 19</span>
+                <span className="chip">Vite</span>
+                <span className="chip">Gatsby</span>
+              </div>
+            </div>
+
+            {/* Vue, Nuxt & Angular */}
+            <div className="framework-card">
+              <div className="framework-top">
+                <div className="framework-icon-box icon-box-vue">
+                  <span className="framework-emoji">💚</span>
+                </div>
+                <div className="framework-meta">
+                  <h3>Vue, Nuxt &amp; Angular</h3>
+                  <span className="framework-depth">SPA routes &amp; scoped styles</span>
+                </div>
+              </div>
+              <p>
+                Preserves client-side components, asset graphs, scoped stylesheets, and router navigations in clean relative local offline formats.
+              </p>
+              <div className="framework-chips">
+                <span className="chip">Vue.js</span>
+                <span className="chip">Nuxt</span>
+                <span className="chip">Angular</span>
+                <span className="chip">Svelte</span>
+              </div>
+            </div>
+
+            {/* Shopify & Webflow */}
+            <div className="framework-card">
+              <div className="framework-top">
+                <div className="framework-icon-box icon-box-shopify">
+                  <span className="framework-emoji">🛍️</span>
+                </div>
+                <div className="framework-meta">
+                  <h3>Shopify &amp; Webflow</h3>
+                  <span className="framework-depth">E-commerce &amp; visual builders</span>
+                </div>
+              </div>
+              <p>
+                Mirrors high-resolution product catalogs, custom Webflow interactions, CDN-hosted media, and typography with zero missing cloud assets.
+              </p>
+              <div className="framework-chips">
+                <span className="chip">Shopify</span>
+                <span className="chip">Webflow</span>
+                <span className="chip">Wix</span>
+                <span className="chip">Squarespace</span>
+              </div>
+            </div>
+
+            {/* Static HTML5 & Modern CSS */}
+            <div className="framework-card">
+              <div className="framework-top">
+                <div className="framework-icon-box icon-box-html">
+                  <span className="framework-emoji">⚡</span>
+                </div>
+                <div className="framework-meta">
+                  <h3>Static HTML5 &amp; CSS</h3>
+                  <span className="framework-depth">Bootstrap, Tailwind &amp; custom</span>
+                </div>
+              </div>
+              <p>
+                100% authentic folder mirroring. Double-click <code>index.html</code> from your local disk or USB drive without requiring any local server setup.
+              </p>
+              <div className="framework-chips">
+                <span className="chip">TailwindCSS</span>
+                <span className="chip">Bootstrap 5</span>
+                <span className="chip">Bulma</span>
+                <span className="chip">HTML5 / CSS3</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* SEO & Knowledge Showcase Section */}
         <section className="seo-showcase-section" aria-label="SiteClonePro Archiving Architecture">
           <div className="seo-header">
